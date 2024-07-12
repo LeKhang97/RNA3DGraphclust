@@ -1,0 +1,10 @@
+numpy
+pyclean
+pandas
+numpyencoder
+scipy
+matplotlib
+seaborn
+scikit-learn
+networkx
+markov_clustering
