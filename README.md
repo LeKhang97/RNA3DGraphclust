@@ -55,7 +55,7 @@ options:
   -o OUTFILE, --outfile OUTFILE
                         output file.
   -a {G,M,L,H}, --algorithm {G,M,L,H}
-                        Clustering algorithm. Either: G (Girvan-Newman); M (Markov); L (Louvain); H (Hierachical-based))
+                        Clustering algorithm. Either: G (Girvan-Newman, default); M (Markov); L (Louvain); H (Hierachical-based))
 ```
 
 - Each algorithm has its default parameters. For example, if you want to check the Markov clustering, type ```python3 ./RNA3DGraphclust.py M -h ``` for details. You can also change the parameters, in this case is the epsilon (-e), by following: <br>
