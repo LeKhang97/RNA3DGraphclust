@@ -44,7 +44,7 @@ def main_argument():
 
     parser.add_argument('-a', 
 					'--algorithm',
-                    default = 'M',
+                    default = 'G',
 					choices = ['G', 'M', 'L', 'H'],
 					help="Clustering algorithm. Either: G (Girvan-Newman); M (Markov); L (Louvain); H (Hierachical-based) (default).")
     
