@@ -58,7 +58,7 @@ options:
                         Clustering algorithm. Either: G (Girvan-Newman); M (Markov); L (Louvain); H (Hierachical-based))
 ```
 
-- Each algorithm has its default parameters. For example, if you want to check the MeanShift, type ```python3 ./Clustering.py M -h ``` for details. You can also change the parameters, in this case is the bandwidth (-b), by following: <br>
+- Each algorithm has its default parameters. For example, if you want to check the Markov clustering, type ```python3 ./RNA3DGraphclust.py M -h ``` for details. You can also change the parameters, in this case is the epsilon (-e), by following: <br>
 ``` python3 RNA3DGraphclust.py -i infile -v -a M -o outfile M -e 5```
 
 ### Notes
