@@ -247,7 +247,8 @@ def build_graph(data, distance = 8, weight = False):
         for j in range(i + 1, len(data)):
             if dist_matrix[i, j] < distance:
                 if weight in ("True", "T", "true"):
-                    if j == i+1:
+                    #if j == i+1:
+                    if j >= i+30:
                         G.add_edge(i, j, weight = mod_weight_matrix[i,j])
                     else:
                         G.add_edge(i, j, weight = weight_matrix[i,j])
@@ -261,7 +262,9 @@ def cluster_algo(*args):
     G = build_graph(data, args[2], args[3])
     if args[1] == 'H':
         print("Executing Hierachical-based clustering...")
-        result1 = top_down_commu(G, args[4])
+        _, result1 = top_down_commu2(G, args[4])
+        print(result1)
+        result1 = [list(range(i[0], i[1])) for i in result1]
         result = bot_up_commu(G, result1)
         
     elif args[1] == 'M':
@@ -509,7 +512,7 @@ def contact_prob(d, d0 = 8, sig = 1.5):
     return p
 
 def mod_contact_prob(d, d0 = 8, sig = 1.5):
-    p = 1/(1+math.e**((d - d0)/(-sig)))
+    p = 1/(1+0.5*math.e**((d - d0)/(sig)))
     
     return p
 
@@ -643,9 +646,10 @@ def top_down_commu(graph, min_value = 0.4):
         subgraphs = temp_subgraphs
         
         p += 1
-        if p == 30:
+        if p == 40:
             break
     
+    print(list_pos)
     list_pos = [list(range(i[0], i[1])) for i in list_pos]
     return list_pos 
 
@@ -669,7 +673,7 @@ def bot_up_commu(graph, segment_list):
         max_score = -1
         max_set = []
         max_other = []
-        for other in other_segments:
+        for pos, other in enumerate(other_segments):
             set2 = set(other + segment)
             set3 = set([j for i in other_segments for j in i if i != other])
             score2 = nx.community.modularity(graph, [set2, set3])
@@ -677,10 +681,12 @@ def bot_up_commu(graph, segment_list):
                 max_score = score2
                 max_set = set2
                 max_other = other
+                #max_pos = pos
             
         if max_score >= abs(1*score):
-            #print(segment, max_other, sep = '\n', end = '\n\n')
-            #print(other_segments, sep = '\n')
+            #min_pos = min(p, max_pos)
+            #others2 = [i for i in other_segments if i != max_other]
+            #segments = others2[:min_pos] + [list(max_set)] + others2[min_pos+1:]
             segments = [list(max_set)] + [i for i in other_segments if i != max_other]
             p = 0
         else:
@@ -690,3 +696,45 @@ def bot_up_commu(graph, segment_list):
     
     #print(p)
     return segments 
+
+def top_down_commu2(graph, min_value = 0.4):
+    nodes = sorted(list(graph.nodes).copy())
+    edges = list(graph.edges).copy()
+    
+    # Each subgraph is corresponse to each segment 
+    subgraphs = graph.copy()
+    segment = (min(nodes),max(nodes))
+    print(segment)
+
+    dict_score = {}
+
+    for node1 in nodes:
+        node_list1 = nodes[:nodes.index(node1)]; node_list2 = nodes[nodes.index(node1):]
+        #print(node1)
+        dict_score[node1] =  nx.community.modularity(subgraphs, [set(node_list1), set(node_list2)])
+        
+
+    if bool(dict_score.keys()) == False:
+        #print('dict_score is empty')
+        return graph, [(min(nodes),max(nodes)+1)]
+    
+    key = max(dict_score, key=dict_score.get)
+    max_value = dict_score[key]
+    
+    if max_value < min_value or key <= min(nodes) + 30 or key >= max(nodes) - 30:
+        #print('max_value is smaller than threshold', max_value)
+        return graph, [(min(nodes),max(nodes)+1)]
+    
+    subgraph1 = subgraphs.copy(); subgraph2 = subgraphs.copy()
+    subgraph2.remove_nodes_from(list(range(min(segment), key)))  
+    subgraph1.remove_nodes_from(list(range(key, max(segment)+1)))          
+    subgraph1.remove_edges_from([edge for edge in subgraph1.edges if any(e for e in edge if e in list(subgraph2.nodes))])
+    subgraph2.remove_edges_from([edge for edge in subgraph2.edges if any(e for e in edge if e in list(subgraph1.nodes))])
+
+    subgraph1,list_pos1 = top_down_commu2(subgraph1, min_value)
+    subgraph2,list_pos2 = top_down_commu2(subgraph2, min_value)
+    
+    #temp_subgraphs = temp_subgraphs[:pos+s] + [subgraph1, subgraph2] + temp_subgraphs[pos+1+s:]
+    list_pos = list_pos1 + list_pos2
+
+    return graph, list_pos 
