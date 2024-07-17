@@ -248,7 +248,7 @@ def build_graph(data, distance = 8, weight = False):
             if dist_matrix[i, j] < distance:
                 if weight in ("True", "T", "true"):
                     #if j == i+1:
-                    if j >= i+30:
+                    if j == i+1:
                         G.add_edge(i, j, weight = mod_weight_matrix[i,j])
                     else:
                         G.add_edge(i, j, weight = weight_matrix[i,j])
@@ -263,9 +263,12 @@ def cluster_algo(*args):
     if args[1] == 'H':
         print("Executing Hierachical-based clustering...")
         _, result1 = top_down_commu2(G, args[4])
-        print(result1)
+
         result1 = [list(range(i[0], i[1])) for i in result1]
-        result = bot_up_commu(G, result1)
+
+        #bot_up_commu2(G, result1)
+
+        result = bot_up_commu2(G, result1)
         
     elif args[1] == 'M':
         print("Executing Markov clustering...")
@@ -738,3 +741,63 @@ def top_down_commu2(graph, min_value = 0.4):
     list_pos = list_pos1 + list_pos2
 
     return graph, list_pos 
+
+def bot_up_commu2(graph, segment_list):
+    score_list = []
+    segments = sorted(segment_list.copy(), key=len)
+    #segments = [list(range(i[0], i[1])) for i in segment_list]
+    print(len(segments))
+    #new_segments = segments.copy()
+    #for segment in segments:
+    p = 0
+    while p <= len(segments) - 1:
+        segment = segments[p]
+        other_segments = [i for i in segments if i != segment]
+        others = [j for i in segments for j in i if i != segment]
+        
+        max_score = 0; max_segment = []
+        for p2, segment2 in enumerate(other_segments):
+            subgraph = graph.copy()
+            subgraph.remove_nodes_from([i for i in list(graph.nodes) if i not in segment2 + segment])
+            subgraph.remove_edges_from([edge for edge in subgraph.edges if any(e for e in edge if e not in list(subgraph.nodes))])
+            score = inter_community_edges(subgraph, [segment2, segment])
+            if score > max_score:
+                max_score = score
+                max_segment = segment2
+                max_subgraph = subgraph
+                max_p = p2
+        
+        '''if max_score == 0:
+            p += 1
+            continue
+
+        threshold = 0.1/min(len(segment), len(max_segment))
+        print(max_score, threshold)'''
+        if max_score >= 0:
+            segments = [list(set(max_segment + segment))] + [i for i in other_segments if i != max_segment]
+            segments = sorted(segments, key=len)
+            p = min(p, max_p)
+            #p = 0
+
+        else:  
+            p += 1
+            continue
+    
+    return segments
+
+def inter_community_edges(G,segments):
+    betweenness = nx.edge_betweenness_centrality(G)
+    scores = []
+    s = 0
+    for edge, score in betweenness.items():
+        if ((edge[0] in segments[0])^(edge[1] in segments[0])):
+            s += 1
+            if score > 0.3:
+                scores += [score]
+
+    if s == 0:
+        return 0
+    
+    normalized_scores = sum(scores)/s
+    
+    return normalized_scores
