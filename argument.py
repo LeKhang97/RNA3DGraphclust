@@ -62,7 +62,8 @@ def main_argument():
 
     # Subparser for -a H
     parser_a_H = subparsers.add_parser('H', help='Arguments for Hierarchical clustering algorithm')
-    parser_a_H.add_argument('-m', type=float, default= 0.4, help='upper threshold of modularity score for top-down algo (default = 0.4)')
+    parser_a_H.add_argument('-t', type=float, default= 0.4, help='upper threshold of modularity score for top-down algo (default = 0.4)')
+    parser_a_H.add_argument('-b', type=float, default= 0.1, help='ratio of nodes for bottom-up algo to calculate threshold (default = 0.1)')
 
     args = parser.parse_args()      
     
@@ -110,12 +111,14 @@ def process_args():
         largs += [args.n]
         
     elif args.algorithm  == 'H':
-        if not hasattr(args, 'm'):
-            args.m = 0.4
+        if not hasattr(args, 't'):
+            args.t = 0.4
+        if not hasattr(args, 'b'):
+            args.b = 0.1
         
         if args.verbose:
-            print(f"m: {args.m}")
-        largs += [args.m]
+            print(f"t: {args.t}, b: {args.b}")
+        largs += [args.t, args.b]
             
     else:
         sys.exit("Unrecognized algorithm!")
