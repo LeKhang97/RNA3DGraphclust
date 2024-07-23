@@ -268,7 +268,7 @@ def cluster_algo(*args):
 
         #bot_up_commu2(G, result1)
 
-        result = bot_up_commu2(G, result1)
+        result = bot_up_commu2(G, result1, args[5])
         
     elif args[1] == 'M':
         print("Executing Markov clustering...")
@@ -545,7 +545,7 @@ def mod_modularity_score(nodes, edges, alpha = 1):
         #score += A - degrees[inode1]*degrees[inode2]/len(edges)
         x = degrees[inode1]*degrees[inode2]/(2*len(edges)*(len(nodes)-1)*alpha) 
         score += x - 1
-        print(x)
+        #print(x)
     
     #score -= 1
     
@@ -742,7 +742,7 @@ def top_down_commu2(graph, min_value = 0.4):
 
     return graph, list_pos 
 
-def bot_up_commu2(graph, segment_list):
+def bot_up_commu2(graph, segment_list, ratio = 0.1):
     score_list = []
     segments = sorted(segment_list.copy(), key=len)
     #segments = [list(range(i[0], i[1])) for i in segment_list]
@@ -750,7 +750,8 @@ def bot_up_commu2(graph, segment_list):
     #new_segments = segments.copy()
     #for segment in segments:
     p = 0
-    while p <= len(segments) - 1:
+    while p <= len(segments) - 1 and len(segments) > 1:
+        #print(p, len(segments))
         segment = segments[p]
         other_segments = [i for i in segments if i != segment]
         others = [j for i in segments for j in i if i != segment]
@@ -760,28 +761,36 @@ def bot_up_commu2(graph, segment_list):
             subgraph = graph.copy()
             subgraph.remove_nodes_from([i for i in list(graph.nodes) if i not in segment2 + segment])
             subgraph.remove_edges_from([edge for edge in subgraph.edges if any(e for e in edge if e not in list(subgraph.nodes))])
-            score = inter_community_edges(subgraph, [segment2, segment])
-            if score > max_score:
-                max_score = score
+            #score = inter_community_edges(subgraph, [segment2, segment])
+            score2 = inter_community_edges2(subgraph, [segment2, segment])
+
+            if score2 > max_score:
+                max_score = score2
                 max_segment = segment2
                 max_subgraph = subgraph
                 max_p = p2
-        
-        '''if max_score == 0:
-            p += 1
-            continue
 
-        threshold = 0.1/min(len(segment), len(max_segment))
-        print(max_score, threshold)'''
-        if max_score >= 0:
+        #threshold = 0.1/min(len(segment), len(max_segment))
+        threshold = ratio*min(len(segment), len(max_segment))
+        #print(max_score, threshold)
+        if max_score >= threshold:
             segments = [list(set(max_segment + segment))] + [i for i in other_segments if i != max_segment]
             segments = sorted(segments, key=len)
-            p = min(p, max_p)
+            p = max(min(p, max_p),0)
             #p = 0
 
         else:  
             p += 1
             continue
+    print("end")
+    '''for segment1,segment2 in itertools.combinations(segments, 2):
+        subgraph = graph.copy()
+        subgraph.remove_nodes_from([i for i in list(graph.nodes) if i not in segment1 + segment2])
+        subgraph.remove_edges_from([edge for edge in subgraph.edges if any(e for e in edge if e not in list(subgraph.nodes))])
+        score2 = inter_community_edges2(subgraph, [segment1, segment2])
+        threshold = 0.3*min(len(segment1), len(segment2))
+        print(segments.index(segment1), segments.index(segment2),
+              score2, threshold)'''
     
     return segments
 
@@ -791,8 +800,7 @@ def inter_community_edges(G,segments):
     s = 0
     for edge, score in betweenness.items():
         if ((edge[0] in segments[0])^(edge[1] in segments[0])):
-            s += 1
-            if score > 0.3:
+            if score > 0:
                 scores += [score]
 
     if s == 0:
@@ -801,3 +809,16 @@ def inter_community_edges(G,segments):
     normalized_scores = sum(scores)/s
     
     return normalized_scores
+
+def inter_community_edges2(G,segments):
+    nodes = []
+
+    for edge in G.edges:
+        if ((edge[0] in segments[0])^(edge[1] in segments[0])):
+            if edge[0] not in nodes:
+                nodes += [edge[0]]
+            if edge[1] not in nodes:
+                nodes += [edge[1]]
+    
+    return len(nodes)
+    
