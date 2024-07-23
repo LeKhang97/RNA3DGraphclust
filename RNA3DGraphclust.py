@@ -1,4 +1,5 @@
 from argument import *
+from pathlib import Path
 
 if __name__ == "__main__":
     x, y  = process_args()  #Check argument.py for more details
@@ -21,9 +22,11 @@ if __name__ == "__main__":
             
             # Create a command file to PyMOL
             #cmd_file = f'load {os.getcwd()}\{filename}.pdb; '
-            cmd_file = f'load {os.getcwd()}\{x[0]}; '
+            path = os.getcwd()
+            path = Path(path)
+            path = path.as_posix().replace('/', '\\') if os.name != 'nt' else str(path)
+            cmd_file = f'load {path}\{x[0]}; '
             #print(cmd_file, f'load {os.getcwd()}\{x[0]}; ')
-
     #Check if the file is error, the result is either empty or if the length of chains is valid
     data, res_num_array  = check_C(C, x[-1])
     if data ==  False:
@@ -65,6 +68,7 @@ if __name__ == "__main__":
                                             }
             
             cmd_file += '; '.join(pymol_cmd)
+            print(cmd_file)
                         
         #If the user want to cluster each chain separately
         else:
@@ -85,7 +89,7 @@ if __name__ == "__main__":
                                                 }
                 if i.split('_')[1] == 'MODEL1' or 'MODEL' not in i:
                     cmd_file += '; '.join(pymol_cmd) + ';'
-                
+          
     #Check if the user want to write the result to a file
     if y[0] != None:
         if y[1]:
