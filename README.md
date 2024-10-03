@@ -38,10 +38,11 @@ You can execute the program by:<br/>
 Type ```python3 RNA3DGraphclust.py -h``` for more information of the usage:
 ```
 positional arguments:
-  {G,M,L,H}
+  {G,M,L,C,H}
     G                   Arguments for Girvan-Newman clustering algorithm
     M                   Arguments for Markov clustering algorithm
     L                   Arguments for Louvain clustering algorithm
+    C                   Arguments for Clauset-Newman-Moore clustering algorithm
     H                   Arguments for Hierachical-based clustering algorithm
 
 options:
