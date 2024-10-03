@@ -6,6 +6,7 @@ if __name__ == "__main__":
         
     #Check if file or file path exists
     if Path(x[0]).exists() == False:
+        print(Path(x[0]))   
         sys.exit("Filename does not exist!")
     else:
         if y[1]:
@@ -25,6 +26,7 @@ if __name__ == "__main__":
             path = os.getcwd()
             path = Path(path)
             path = path.as_posix().replace('/', '\\') if os.name != 'nt' else str(path)
+            path = path.replace('\mnt\c', 'C:') # for running only
             cmd_file = f'load {path}\{x[0]}; '
             #print(cmd_file, f'load {os.getcwd()}\{x[0]}; ')
     #Check if the file is error, the result is either empty or if the length of chains is valid

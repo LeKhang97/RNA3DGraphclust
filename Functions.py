@@ -262,7 +262,7 @@ def cluster_algo(*args):
     G = build_graph(data, args[2], args[3])
     if args[1] == 'H':
         print("Executing Hierachical-based clustering...")
-        _, result1 = top_down_commu2(G, args[4])
+        _, result1 = top_down_commu2(G, args[4], args[6])
 
         result1 = [list(range(i[0], i[1])) for i in result1]
 
@@ -283,10 +283,14 @@ def cluster_algo(*args):
     elif args[1] == 'L':
         print("Executing Louvain clustering...")
 
-        result1 = nx.community.louvain_communities(G)
+        result = nx.community.louvain_communities(G, resolution =  args[4])
 
-        result = merge_clusters(result1, G, args[4])
+        #result = merge_clusters(result1, G, args[4])
         #result = merge_clusters(result1, G, 2)
+    
+    elif args[1] == 'C':
+        print("Executing Clauset-Newman-Moore clustering...")
+        result = nx.community.greedy_modularity_communities(G, resolution = args[4])
 
     elif args[1] == 'G':
         print("Executing Girvan-Newman clustering...")
@@ -440,21 +444,23 @@ def domain_distance_matrix(lists_label, list_residue = None):#Order in lists_lab
             group_residue[key][label] = [list_residue[i] for i in range(len(list_residue)) if group_label[key][i] == label]
     
     domain_distance_mtx = []
-    for label1 in sorted(set(group_label['pred'])):
-        for segment1 in list_to_range(group_residue['pred'][label1]):
-            row = []
-            for label2 in sorted(set(group_label['true'])):
-                for segment2 in list_to_range(group_residue['true'][label2]):
-                    #print(segment1, segment2)
-                    x = domain_distance(segment2, segment1)
-                    row += [x]
-                    #print(x, end = '\n\n')
-            
-            domain_distance_mtx += [row]
-    
-    lst_to_range_true = [list_to_range(group_residue['true'][label1]) for label1 in sorted(set(group_label['true']))]
-    lst_to_range_pred = [list_to_range(group_residue['pred'][label1]) for label1 in sorted(set(group_label['pred']))]
-    
+    if len(set(group_label['pred'])) > 0:
+        for label1 in sorted(set(group_label['pred'])):
+            if bool(group_residue['pred'][label1]):
+                for segment1 in list_to_range(group_residue['pred'][label1]):
+                    row = []
+                    for label2 in sorted(set(group_label['true'])):
+                        for segment2 in list_to_range(group_residue['true'][label2]):
+                            #print(segment1, segment2)
+                            x = domain_distance(segment2, segment1)
+                            row += [x]
+                            #print(x, end = '\n\n')
+
+                    domain_distance_mtx += [row]
+
+        lst_to_range_true = [list_to_range(group_residue['true'][label1]) for label1 in sorted(set(group_label['true'])) if bool(group_residue['true'][label1])]
+        lst_to_range_pred = [list_to_range(group_residue['pred'][label1]) for label1 in sorted(set(group_label['pred'])) if bool(group_residue['pred'][label1])]
+
     return domain_distance_mtx, lst_to_range_true, lst_to_range_pred
 
 def DBD(domain_distance_mtx, list_range_true, list_range_pred, threshold = 50):
@@ -700,7 +706,7 @@ def bot_up_commu(graph, segment_list):
     #print(p)
     return segments 
 
-def top_down_commu2(graph, min_value = 0.4):
+def top_down_commu2(graph, min_value = 0.4, resolution = 1):
     nodes = sorted(list(graph.nodes).copy())
     edges = list(graph.edges).copy()
     
@@ -714,7 +720,7 @@ def top_down_commu2(graph, min_value = 0.4):
     for node1 in nodes:
         node_list1 = nodes[:nodes.index(node1)]; node_list2 = nodes[nodes.index(node1):]
         #print(node1)
-        dict_score[node1] =  nx.community.modularity(subgraphs, [set(node_list1), set(node_list2)])
+        dict_score[node1] =  nx.community.modularity(subgraphs, [set(node_list1), set(node_list2)], resolution = resolution)
         
 
     if bool(dict_score.keys()) == False:
@@ -772,8 +778,9 @@ def bot_up_commu2(graph, segment_list, ratio = 0.1):
 
         #threshold = 0.1/min(len(segment), len(max_segment))
         threshold = ratio*min(len(segment), len(max_segment))
+        old_segments = segments.copy()  
         #print(max_score, threshold)
-        if max_score >= threshold:
+        if max_score >= threshold and bool(max_segment):
             segments = [list(set(max_segment + segment))] + [i for i in other_segments if i != max_segment]
             segments = sorted(segments, key=len)
             p = max(min(p, max_p),0)
