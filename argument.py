@@ -16,10 +16,10 @@ def main_argument():
         required=True,
         help ='input file. Must be in pdb format.')
     
-    parser.add_argument('-c',
-        '--chain',
-        action='store_true',
-        help ='process all chains at once. If not, the program will process each chain individually.')
+    parser.add_argument('-at',
+        '--atom_type',
+        default = 'C3',
+        help ='Atom types to be considered in the analysis. Default is C3.')
     
     parser.add_argument('-t',
         '--threshold',
@@ -30,8 +30,12 @@ def main_argument():
     parser.add_argument('-o', '--outfile',
                 #default = None,
                 action ='store',
-                help ='output file.')
+                help ='output files in json format.')   
     
+    parser.add_argument('-p', '--pdb',
+                        action='store_true',
+                        help='output file(s) in pdb format.')
+
     parser.add_argument('-d', '--distance',
                         default = 8,
                         type = float,
@@ -77,7 +81,7 @@ def main_argument():
 def process_args():
     args = main_argument()
     largs = [args.input, args.algorithm, args.distance, args.weight]
-    largs2 = [args.outfile, args.verbose, args.chain]
+    largs2 = [args.outfile, args.verbose, args.atom_type, args.pdb]
 
     algo_list = ['Girvan-Newman', 'Markov', 'Louvain', 'CNM', 'Hierachical-based']
     
@@ -91,6 +95,8 @@ def process_args():
 
         print("Using algorithm: ", algo)
         print(f"Arguments for {algo}:")
+
+        print('Using atom type: ', args.atom_type)
         
     if args.algorithm == 'G':
         if args.verbose:

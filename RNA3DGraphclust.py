@@ -15,19 +15,21 @@ if __name__ == "__main__":
         #Read file
         with open(x[0], 'r') as infile:
             file = infile.read().split('\n')
-            C = process_pdb(file)
+            C = process_pdb(file, atom_types= y[2])
+            if C == False:
+                sys.exit("File is error or chosen atom type is not present!")
+
             if '\\' in x[0]:
                 filename = ''.join(x[0].split('\\')[-1]).replace('.pdb', '')
             else:
                 filename = ''.join(x[0].split('/')[-1]).replace('.pdb', '')
             
-            # Create a command file to PyMOL
-            #cmd_file = f'load {os.getcwd()}\{filename}.pdb; '
+            # Create a command file to PyMOL'
             path = os.getcwd()
             path = Path(path)
-            path = path.as_posix().replace('/', '\\') if os.name != 'nt' else str(path)
-            path = path.replace('\mnt\c', 'C:') # for running only
-            cmd_file = f'load {path}\{x[0]}; '
+            path = str(path).replace('/mnt/c', 'C:')  if os.name == 'nt' else path.as_posix() 
+            #path = path.replace('/mnt/c', 'C:') # for running only
+            cmd_file = f'load {path}/{x[0]}; '
             #print(cmd_file, f'load {os.getcwd()}\{x[0]}; ')
     #Check if the file is error, the result is either empty or if the length of chains is valid
     data, res_num_array  = check_C(C, x[-1])
@@ -47,50 +49,37 @@ if __name__ == "__main__":
         
         # If the length of all chains is invalid, the program will exit
         if len(data) == 0:
-            sys.exit("No chain will be proccessed!")
+            sys.exit("No chain will be processed!")
 
         result = {filename:{}} 
-        #Check if the user want to cluster all chains together
-        if y[2]:
-            #proccessed_data = build_graph(data[:num_chains], x[2], x[3])
-            pred = cluster_algo(data[:num_chains], *x[1:])
-            #pred = cluster_algo(proccessed_data, *x[1:])
-
-            all_res_num = flatten_np(res_num_array[:num_chains])
-
-            pred = [pred.index(i) for j in all_res_num for i in pred if all_res_num.index(j) in i]
+                        
+        # Cluster each chain separately
+        for subdata, res_num, i in zip(data, res_num_array, C[1]):  
+            #processed_data = build_graph(subdata, x[2], x[3])
             
-            name = filename + '_chain_all_' + C[1][0].split('_')[1]
-            pymol_cmd = pymol_proccess(pred, flatten_np(res_num_array[:num_chains]), name)
+            pred = cluster_algo(subdata, *x[1:])
+
+            pred = [pred.index(i) for j in res_num for i in pred if res_num.index(j) in i]
+
+            name = filename + f'_chain_{i}'
+            pymol_cmd = pymol_process(pred, res_num, name)
             print('\n')
-            result[filename]['chain_all'] = {'data': flatten_np(data[:num_chains]),
+            result[filename][f'chain_{i}'] = {'data': subdata,
                                             'cluster': pred,
-                                            'res': all_res_num,
+                                            'res': res_num,
                                             'PyMOL': pymol_cmd
                                             }
-            
-            cmd_file += '; '.join(pymol_cmd)
-            print(cmd_file)
-                        
-        #If the user want to cluster each chain separately
-        else:
-            for subdata, res_num, i in zip(data, res_num_array, C[1]):
-                #proccessed_data = build_graph(subdata, x[2], x[3])
-                
-                pred = cluster_algo(subdata, *x[1:])
+            if i.split('_')[1] == 'MODEL1' or 'MODEL' not in i:
+                cmd_file += '; '.join(pymol_cmd) + ';'
 
-                pred = [pred.index(i) for j in res_num for i in pred if res_num.index(j) in i]
+            if y[3]:
+                if y[1]:
+                    print(f'Writing to PDB file(s)', end='\n\n')
 
-                name = filename + f'_chain_{i}'
-                pymol_cmd = pymol_proccess(pred, res_num, name)
-                print('\n')
-                result[filename][f'chain_{i}'] = {'data': subdata,
-                                                'cluster': pred,
-                                                'res': res_num,
-                                                'PyMOL': pymol_cmd
-                                                }
-                if i.split('_')[1] == 'MODEL1' or 'MODEL' not in i:
-                    cmd_file += '; '.join(pymol_cmd) + ';'
+                name = x[0].replace('.pdb', '')
+                cluster_result = process_cluster_format(pred,
+                                                        res_num)
+                split_pdb_by_clusters(x[0], cluster_result, name, i.replace('_',''))
           
     #Check if the user want to write the result to a file
     if y[0] != None:
