@@ -15,7 +15,7 @@ Then use this command below to run the docker image:
 
 Whereas `` `pwd` `` is your full path to your working directory containing input file(s). Here is the full command for example:
 
-``` docker run -v `pwd`:/workdir/ lequockhang/rna3dgraphclust -i Example.pdb -a G -v -o Output```
+``` docker run -v `pwd`:/workdir/ lequockhang/rna3dgraphclust -i Example.pdb -a G -v -p Output_pdb_name -j Output_json_name```
 
 #### 2.  Using source code:
 ```git clone https://github.com/LeKhang97/RNA3DGraphclust```
@@ -33,7 +33,7 @@ Then you can execute the program in virtual environment by:
 
 ### Usage
 You can execute the program by:<br/>
-```python3 RNA3DGraphclust.py -i infile -v -a M -o outfile  ```
+```python3 RNA3DGraphclust.py -i infile -v -a M -o path_for_output  ```
 
 Type ```python3 RNA3DGraphclust.py -h``` for more information of the usage:
 ```
@@ -51,20 +51,24 @@ options:
   -i INPUT, --input INPUT
                         input file. Must be in pdb format.
   -at, --atom_type      Atom types to be considered in the analysis. The default is C3.
+
   -t THRESHOLD, --threshold THRESHOLD
-                        Lower threshold for sequence length
-  -o OUTFILE, --outfile OUTFILE
-                        output file in JSON format.
+                        Lower threshold for sequence length.
+  -o OUTPATH, --outpath OUTPATH
+                        path of output for json and pdb files. If not specified, the output will be saved in the current directory.
 
   -p PDB, --pdb PDB
-                        output file in PDB format.
+                        output filename in PDB format.
 
-  -a {G,M,L,H}, --algorithm {G,M,L,H}
-                        Clustering algorithm. Either: G (Girvan-Newman, default); M (Markov); L (Louvain); H (Hierachical-based))
+  -j JSON, --json JSON
+                        output filename in JSON format.
+
+  -a {G,M,L,C,H}, --algorithm {G,M,L,C,H}
+                        Clustering algorithm. Either: G (Girvan-Newman, default); M (Markov); L (Louvain); C (Clauset-Newman-Moore); H (Hierachical-based))
 ```
 
 - Each algorithm has its default parameters. For example, if you want to check the Markov clustering, type ```python3 ./RNA3DGraphclust.py M -h ``` for details. You can also change the parameters, in this case is the epsilon (-e), by following: <br>
-``` python3 RNA3DGraphclust.py -i infile -v -a M -o outfile M -e 5```
+``` python3 RNA3DGraphclust.py -i infile -v -a M -o . M -e 5```
 
 ### Notes
 - All parameters specified for each algorithm can only be accessed after typing its abbreviation (besides the option -a Algorithm);
