@@ -27,15 +27,36 @@ def main_argument():
         type= int,
         help ='Lower threshold for sequence length')
 
-    parser.add_argument('-o', '--outfile',
+    '''parser.add_argument('-o', '--outfile',
                 #default = None,
                 action ='store',
-                help ='output files in json format.')   
+                help ='output files in json format.')
+                
+        parser.add_argument('-p', '--pdb',
+                    action='store_true',
+                    help='output file(s) in pdb format.')'''
     
-    parser.add_argument('-p', '--pdb',
-                        action='store_true',
-                        help='output file(s) in pdb format.')
-
+    parser.add_argument('-o', '--outpath',
+                nargs='?', 
+                const='.',
+                default= None, 
+                type=str,
+                help ="path of output for json and pdb files. If not specified, the output will be saved in the current directory.")
+    
+    parser.add_argument('-j', '--json', 
+                        type= str, 
+                        nargs = '?', 
+                        const = False, 
+                        default = None, 
+                        help='Name of the output json files. If not specified, its name will be the same as the input file')
+    
+    parser.add_argument('-p', '--pdb', 
+                        type= str, 
+                        nargs = '?', 
+                        const = False, 
+                        default = None, 
+                        help='Name of the output pdb file(s). If not specified, its name will be the same as the input file')
+    
     parser.add_argument('-d', '--distance',
                         default = 8,
                         type = float,
@@ -74,6 +95,11 @@ def main_argument():
     parser_a_H.add_argument('-b', type=float, default= 0.1, help='ratio of nodes for bottom-up algo to calculate threshold (default = 0.1)')
     parser_a_H.add_argument('-r', type=float, default= 1, help='resolution of the algorithm (default = 1)')
     
+    # Subparser for -a o
+    '''parser_a_o = subparsers.add_parser('o', help='Arguments for output files')
+    parser_a_o.add_argument('-j', type= str, nargs = '?', const = False, default = None, help='Name of the output json files')
+    parser_a_o.add_argument('-p', type= str, nargs = '?', const = False, default = None, help='Name of the output pdb file(s)') '''
+
     args = parser.parse_args()      
     
     return args
@@ -81,7 +107,6 @@ def main_argument():
 def process_args():
     args = main_argument()
     largs = [args.input, args.algorithm, args.distance, args.weight]
-    largs2 = [args.outfile, args.verbose, args.atom_type, args.pdb]
 
     algo_list = ['Girvan-Newman', 'Markov', 'Louvain', 'CNM', 'Hierachical-based']
     
@@ -97,7 +122,22 @@ def process_args():
         print(f"Arguments for {algo}:")
 
         print('Using atom type: ', args.atom_type)
-        
+    
+    if args.outpath != None and args.json == None and args.pdb == None:
+        args.json = args.input
+        args.pdb = args.input
+    
+    if args.json == False:
+        args.json = args.input
+
+    if args.pdb == False:
+        args.pdb = args.input
+    
+    if (args.outpath == None) and (args.json != None or args.pdb != None):
+        args.outpath = '.'
+
+    largs2 = [args.outpath, args.verbose, args.atom_type, args.json, args.pdb]
+
     if args.algorithm == 'G':
         if args.verbose:
             print(f"This algorithm does not require any arguments.")
@@ -112,6 +152,7 @@ def process_args():
         if args.verbose:
             print(f"e: {args.e}, i: {args.i}")
         largs += [args.e, args.i]
+
 
     elif args.algorithm == 'L':
         if not hasattr(args, 'r'):
