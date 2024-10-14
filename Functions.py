@@ -11,6 +11,7 @@ from matplotlib import cm
 from scipy.spatial import distance_matrix
 import networkx as nx
 import markov_clustering as mc
+from pathlib import Path
 from numpyencoder import NumpyEncoder
 import statistics
 import os
@@ -892,12 +893,7 @@ def split_pdb_by_clusters(pdb_file, clusters, output_prefix, chain=None):
                 if residue_seq in cluster:
                     cluster_lines[cluster_index].append(line)
                     break
+    
+    return cluster_lines
 
-    # Write the output files for each cluster
-    for cluster_index, cluster in cluster_lines.items():
-        if cluster:
-            output_file = f"{output_prefix}_cluster_{cluster_index + 1}.pdb"
-            with open(output_file, 'w') as outfile:
-                outfile.writelines(cluster)
-            print(f"Wrote {len(cluster)} lines to {output_file}")
     

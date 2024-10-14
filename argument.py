@@ -26,15 +26,6 @@ def main_argument():
         default= 30,
         type= int,
         help ='Lower threshold for sequence length')
-
-    '''parser.add_argument('-o', '--outfile',
-                #default = None,
-                action ='store',
-                help ='output files in json format.')
-                
-        parser.add_argument('-p', '--pdb',
-                    action='store_true',
-                    help='output file(s) in pdb format.')'''
     
     parser.add_argument('-o', '--outpath',
                 nargs='?', 
@@ -94,11 +85,6 @@ def main_argument():
     parser_a_H.add_argument('-t', type=float, default= 0.4, help='upper threshold of modularity score for top-down algo (default = 0.4)')
     parser_a_H.add_argument('-b', type=float, default= 0.1, help='ratio of nodes for bottom-up algo to calculate threshold (default = 0.1)')
     parser_a_H.add_argument('-r', type=float, default= 1, help='resolution of the algorithm (default = 1)')
-    
-    # Subparser for -a o
-    '''parser_a_o = subparsers.add_parser('o', help='Arguments for output files')
-    parser_a_o.add_argument('-j', type= str, nargs = '?', const = False, default = None, help='Name of the output json files')
-    parser_a_o.add_argument('-p', type= str, nargs = '?', const = False, default = None, help='Name of the output pdb file(s)') '''
 
     args = parser.parse_args()      
     
