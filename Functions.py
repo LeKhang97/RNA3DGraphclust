@@ -104,30 +104,54 @@ def process_pdb(list_format, atom_types = 'C3', models = True, get_res = False):
         return result, chains, res_num
 
 def list_to_range(l):
-    l = list(set(l))
+    l = sorted(set(l))  # Sort and remove duplicates, but keep order
     l2 = []
-    s = l[0]
-    for p,v in enumerate(l):
-        if p >= 1:
-            if v == l[p-1] + 1:
-                if p == len(l) - 1:
-                    l2 += [range(s,v+1)]
-                    
-                continue
-                
-            e = l[p-1] + 1
-            l2 += [range(s,e)]
-            s = v
-            
-        if p == len(l) - 1:
-            l2 += [range(s,v+1)]
-    
-    l2 = list(set(l2))
+    s = l[0]  # Start of the first range
 
-    l2 = sorted(l2, key=lambda x: x[0])
+    for p, v in enumerate(l):
+        if p >= 1:
+            # If current number is consecutive with the previous one
+            if v == l[p-1] + 1:
+                # If it's the last element, append the final range
+                if p == len(l) - 1:
+                    l2.append(range(s, v+1))
+                continue
+            
+            # If the sequence breaks, append the current range
+            e = l[p-1] + 1
+            l2.append(range(s, e))
+            s = v  # Start a new range with the current element
+
+        # If it's the last element and not part of a consecutive sequence
+        if p == len(l) - 1:
+            l2.append(range(s, v+1))
     
     return l2
 
+def find_outlier(G, label, threshold = 2):
+    outliers = []
+    for cluster in label:
+        segments = list_to_range(cluster)
+        for segment in segments:
+            outliers = []
+            for node in segment:
+                if G.degree(node) <= threshold:
+                    outliers += [node]
+                else:
+                    break
+            for node in segment[::-1]:
+                if G.degree(node) <= threshold:
+                    outliers += [node]
+                else:
+                    break
+            
+    outliers = list(set(outliers))
+    
+    outliers = list_to_range(outliers)
+    
+    outliers = flatten([list(range_lst) for range_lst in outliers if len(range_lst) >= 10])
+    
+    return outliers
 
 '''def pymol_process(pred, res_num, name=None, color=None):
     if color is None:
@@ -152,6 +176,7 @@ def generate_colors(num_colors):
     return [colormap(i) for i in range(num_colors)]
 
 def pymol_process(pred, res_num, name=None, color=None):
+    #print(len(pred), len(res_num))
     if color is None:
         color = ['red', 'green', 'yellow', 'orange', 'blue', 'pink', 'cyan', 'purple', 'white', 'grey', 
                     'brown','lightblue', 'lightorange', 'lightpink', 'gold']
@@ -168,8 +193,12 @@ def pymol_process(pred, res_num, name=None, color=None):
     cmd = []
     for num, label in enumerate(label_set):
         label1 = [res_num[p] for p, v in enumerate(pred) if v == label]
-        clust_name = name + f'cluster_{num+1}' if name is not None else f'cluster_{num+1}'
-        cmd.append(command_pymol(label1, clust_name, color[num]))
+        if label == -1:
+            clust_name = name + f'_outlier' if name is not None else f'outlier'
+            cmd.append(command_pymol(label1, clust_name,'grey'))
+        else:
+            clust_name = name + f'_cluster_{num+1}' if name is not None else f'cluster_{num+1}'
+            cmd.append(command_pymol(label1, clust_name, color[num]))
 
     return cmd
 
@@ -366,8 +395,7 @@ def domain_overlap_matrix(lists_label, list_residue = None): #Order in lists_lab
 
 def NDO(domain_matrix, len_rnas, min_labels = [0,0]):
     #print(domain_matrix, [min_labels[0]**2, min_labels[1]**2])
-    domain_matrix_no_linker = [row[min_labels[1]**2:] for row in domain_matrix[min_labels[0]**2:]]
-    
+    domain_matrix_no_linker = [row[(min_labels[1] == -1):] for row in domain_matrix[(min_labels[0] == -1):]]
     domain_matrix_no_linker = np.asarray(domain_matrix_no_linker)
     domain_matrix = np.asarray(domain_matrix)
     
@@ -380,16 +408,15 @@ def NDO(domain_matrix, len_rnas, min_labels = [0,0]):
     max_row = np.amax(domain_matrix_no_linker, axis = 1)
     
     Y = 0
-    print(domain_matrix,domain_matrix_no_linker, sum_col, sum_row, max_col, max_row, sep='\n')
+    #print(domain_matrix,domain_matrix_no_linker, sum_col, sum_row, max_col, max_row, sep='\n')
     for row in range(domain_matrix_no_linker.shape[0]):
 
-        Y += 2*max_row[row] - sum_row[row+min_labels[0]**2]
+        Y += 2*max_row[row] - sum_row[row+(min_labels[0] == -1)]
         
     for col in range(domain_matrix_no_linker.shape[1]):
-        Y += 2*max_col[col] - sum_col[col+min_labels[1]**2]
+        Y += 2*max_col[col] - sum_col[col+(min_labels[1] == -1)]
 
-    score = Y*100/(2*(len_rnas - sum_col[0]*(min_labels[1])**2))
-    #score = Y*100/(2*(len_rnas))
+    score = Y/(2*(len_rnas - sum_col[0]*(min_labels[1] == -1)))
     
     return score
 
@@ -498,6 +525,18 @@ def DBD(domain_distance_mtx, list_range_true, list_range_pred, threshold = 50):
         total_score = sum(max_col)/(threshold*scoring_mtx.shape[1])
     
     return total_score
+
+def DCS(truth,pred, outliner = False):
+    if outliner == False:
+        truth = [i for i in truth if i != -1]
+        pred =  [i for i in pred if i != -1]
+    
+    count_truth = len(set(truth))
+    count_pred = len(set(pred))
+    
+    DCS = (max((count_truth), count_pred) - abs(count_truth - count_pred))/max(count_truth, count_pred)
+    
+    return DCS
 
 def inf(tup_of_tups, val):
     start_eles = [min(tup) for tup in tup_of_tups if min(tup) <= val]
@@ -851,6 +890,8 @@ def process_cluster_format(clust_lst, res_lst = None):
     for clust in set_clust:
         sublst = []
         for pos, res in enumerate(res_lst):
+            if pos >= len(clust_lst):
+                print(pos)
             if clust_lst[pos] ==  clust:
                 sublst += [res]
 

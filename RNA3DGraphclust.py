@@ -59,7 +59,13 @@ if __name__ == "__main__":
             
             pred = cluster_algo(subdata, *x[1:])
 
-            pred = [pred.index(i) for j in res_num for i in pred if res_num.index(j) in i]
+            pred_lst = [pred.index(i) for j in range(len(res_num)) for i in pred if j in i]
+
+            #pred_lst = [pred.index(i) for j in res_num for i in pred if res_num.index(j) in i]
+            G = build_graph(subdata, x[2], x[3])
+            outliers = find_outlier(G, pred)
+
+            pred = [-1 if i in outliers else pred_lst[i] for i in range(len(res_num))]
 
             name = filename + f'_chain_{i}'
             pymol_cmd = pymol_process(pred, res_num, name)
@@ -101,13 +107,18 @@ if __name__ == "__main__":
             for chain in result[filename].keys():
                 pred = result[filename][chain]['cluster']
                 res_num = result[filename][chain]['res']
-                cluster_result = process_cluster_format(pred, res_num)
-                cluster_lines = split_pdb_by_clusters(x[0], cluster_result, name, i.replace('_',''))
+
+                res = [res_num[i] for i in range(len(pred)) if pred[i] != -1]
+                pred = [i for i in pred if i != -1]
+
+                cluster_result = process_cluster_format(pred, res)
+
+                cluster_lines = split_pdb_by_clusters(x[0], cluster_result, name, chain.split('_')[1])
                 # Write the output files for each cluster
 
                 for cluster_index, cluster in cluster_lines.items():
                     if cluster:
-                        output_file = target_dir / f"{basename2.replace('.pdb', '')}_{chain}cluster_{cluster_index + 1}.pdb"
+                        output_file = target_dir / f"{basename2.replace('.pdb', '')}_{chain}_cluster_{cluster_index + 1}.pdb"
                         with open(output_file, 'w') as outfile:
                             outfile.writelines(cluster)
                         if y[1]:
