@@ -133,7 +133,6 @@ def find_outlier(G, label, threshold = 2):
     for cluster in label:
         segments = list_to_range(cluster)
         for segment in segments:
-            outliers = []
             for node in segment:
                 if G.degree(node) <= threshold:
                     outliers += [node]
